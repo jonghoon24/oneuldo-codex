@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { currentStreak, fullDateLabel, localDateKey, monthDays, monthLabel, shiftMonth } from './dates';
+import { currentStreak, fullDateLabel, localDateKey, longestStreak, monthDays, monthLabel, shiftMonth } from './dates';
 import { loadData, saveData, validateName, type Habit, type SavedData } from './storage';
 
 type InitialState = { data: SavedData; error: string | null };
@@ -159,6 +159,7 @@ function App() {
 
   const calendarDays = selected ? monthDays(visibleMonth) : [];
   const streak = selected ? currentStreak(selected.completedDates, today) : 0;
+  const bestStreak = selected ? longestStreak(selected.completedDates) : 0;
   const todayCompleted = selected?.completedDates.includes(today) ?? false;
   const previousMonth = shiftMonth(visibleMonth, -1);
   const nextMonth = shiftMonth(visibleMonth, 1);
@@ -292,10 +293,16 @@ function App() {
 
                 <div className="progress-block">
                   <div className="streak-visual" aria-hidden="true">✳</div>
-                  <div className="streak-copy">
-                    <span>현재 연속 기록</span>
-                    <strong>{streak}<small>일</small></strong>
-                    <p>{streak === 0 ? '오늘부터 한 걸음씩 시작해요.' : '꾸준히 이어온 날들이에요.'}</p>
+                  <div className="streak-stats">
+                    <div className="streak-copy">
+                      <span>현재 연속 기록</span>
+                      <strong>{streak}<small>일</small></strong>
+                      <p>{streak === 0 ? '오늘부터 한 걸음씩 시작해요.' : '꾸준히 이어온 날들이에요.'}</p>
+                    </div>
+                    <div className="streak-copy">
+                      <span>최장 연속 기록</span>
+                      <strong>{bestStreak}<small>일</small></strong>
+                    </div>
                   </div>
                   <button
                     type="button"
