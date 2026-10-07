@@ -1,1 +1,5 @@
 approvals_reviewer = "auto_review"
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest"]
