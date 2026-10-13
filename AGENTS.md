@@ -11,7 +11,9 @@
 - 개발 서버: `npm run dev`
 - 타입 검사와 배포용 빌드: `npm run build`
 - 빌드 결과 확인: `npm run preview`
-- 현재 별도의 테스트, 린트 스크립트는 없다. 코드 변경 후 최소한 `npm run build`를 실행하고, 화면이나 상호작용을 바꿨다면 브라우저에서도 확인한다.
+- 코드 검사: `npm run lint`
+- 자동 수정 가능한 린트 문제 수정: `npm run lint:fix`
+- 현재 별도의 테스트 스크립트는 없다. 코드 변경 후 `npm run lint`와 `npm run build`를 실행하고, 화면이나 상호작용을 바꿨다면 브라우저에서도 확인한다.
 
 ## 파일 구성
 
