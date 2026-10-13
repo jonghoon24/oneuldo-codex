@@ -13,7 +13,8 @@
 - 빌드 결과 확인: `npm run preview`
 - 코드 검사: `npm run lint`
 - 자동 수정 가능한 린트 문제 수정: `npm run lint:fix`
-- 현재 별도의 테스트 스크립트는 없다. 코드 변경 후 `npm run lint`와 `npm run build`를 실행하고, 화면이나 상호작용을 바꿨다면 브라우저에서도 확인한다.
+- E2E 테스트: `npm run test:e2e` (최초 실행 전 `npx playwright install chromium`)
+- 코드 변경 후 `npm run lint`와 `npm run build`를 실행하고, 화면이나 상호작용을 바꿨다면 브라우저에서도 확인한다. 습관 등록·체크·연속 기록·저장·삭제 동작을 바꿨다면 E2E 테스트도 실행한다.
 
 ## 파일 구성
 
@@ -23,6 +24,8 @@
 - `src/demoData.ts`: 개발 환경에서 저장 데이터가 없을 때 처음 넣는 예시 기록.
 - `src/styles.css`: 전체 화면 및 반응형 스타일.
 - `src/main.tsx`: React 진입점.
+- `playwright.config.ts`: E2E 브라우저·서버·시간대·초기 저장 데이터 설정.
+- `tests/e2e/habits.spec.ts`: 습관 등록·체크·연속 기록·새로고침·삭제 E2E 테스트.
 
 ## 변경 시 지킬 규칙
 

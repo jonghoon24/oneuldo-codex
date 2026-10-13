@@ -3,3 +3,5 @@ dist/
 *.tsbuildinfo
 .DS_Store
 .playwright-mcp/
+test-results/
+playwright-report/
