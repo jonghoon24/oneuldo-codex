@@ -108,7 +108,7 @@ function App() {
   }
 
   function toggleDate(habit: Habit, date: string) {
-    if (fatalError || date < habit.createdAt || date > today) return;
+    if (fatalError || date > today) return;
     const completedDates = habit.completedDates.includes(date)
       ? habit.completedDates.filter((entry) => entry !== date)
       : [...habit.completedDates, date].sort();
@@ -221,7 +221,7 @@ function App() {
               <div className="empty-habits">
                 <div className="empty-illustration" aria-hidden="true"><span>✦</span><span>◌</span><span>✧</span></div>
                 <h3>첫 습관을 시작해 볼까요?</h3>
-                <p>매일 하고 싶은 일을 하나 적어 보세요.<br />기록은 오늘부터 시작됩니다.</p>
+                <p>매일 하고 싶은 일을 하나 적어 보세요.<br />지난 날짜도 기록할 수 있어요.</p>
                 <button type="button" className="text-action" onClick={() => newNameRef.current?.focus()} disabled={Boolean(fatalError)}>첫 습관 등록하기 <span aria-hidden="true">↗</span></button>
               </div>
             ) : (
@@ -244,7 +244,7 @@ function App() {
                         type="button"
                         className={`list-check ${checked ? 'checked' : ''}`}
                         onClick={() => toggleDate(habit, today)}
-                        disabled={Boolean(fatalError) || today < habit.createdAt}
+                        disabled={Boolean(fatalError)}
                         aria-label={`${habit.name}, 오늘 ${checked ? '완료 취소' : '완료하기'}`}
                         aria-pressed={checked}
                       ><span aria-hidden="true">{checked ? '✓' : '+'}</span></button>
@@ -283,7 +283,7 @@ function App() {
                         {editError && <p className="field-error" id="edit-habit-error" role="alert">{editError}</p>}
                       </form>
                     ) : <h2>{selected.name}</h2>}
-                    <p className="started-at">{fullDateLabel(selected.createdAt)}부터 시작</p>
+                    <p className="started-at">{fullDateLabel(selected.createdAt)} 등록</p>
                   </div>
                   <div className="detail-actions">
                     <button type="button" onClick={beginEdit} disabled={Boolean(fatalError) || editing}>이름 변경</button>
@@ -308,7 +308,7 @@ function App() {
                     type="button"
                     className={`today-button ${todayCompleted ? 'done' : ''}`}
                     onClick={() => toggleDate(selected, today)}
-                    disabled={Boolean(fatalError) || today < selected.createdAt}
+                    disabled={Boolean(fatalError)}
                     aria-pressed={todayCompleted}
                   ><span aria-hidden="true">{todayCompleted ? '✓' : '+'}</span>{todayCompleted ? '오늘 완료 · 취소하기' : '오늘 완료하기'}</button>
                 </div>
@@ -320,7 +320,7 @@ function App() {
                       <h3>실천 달력</h3>
                     </div>
                     <div className="month-navigation">
-                      <button type="button" onClick={() => setVisibleMonth(previousMonth)} disabled={previousMonth < selected.createdAt.slice(0, 7)} aria-label="이전 달">‹</button>
+                      <button type="button" onClick={() => setVisibleMonth(previousMonth)} aria-label="이전 달">‹</button>
                       <span aria-live="polite">{monthLabel(visibleMonth)}</span>
                       <button type="button" onClick={() => setVisibleMonth(nextMonth)} disabled={nextMonth > todayMonth} aria-label="다음 달">›</button>
                     </div>
@@ -329,7 +329,7 @@ function App() {
                     {['월', '화', '수', '목', '금', '토', '일'].map((day) => <span className="weekday" key={day}>{day}</span>)}
                     {calendarDays.map((date, index) => {
                       if (!date) return <span key={`blank-${index}`} className="calendar-blank" aria-hidden="true" />;
-                      const available = date >= selected.createdAt && date <= today;
+                      const available = date <= today;
                       const checked = available && selected.completedDates.includes(date);
                       const isToday = date === today;
                       const state = !available ? '기록 불가' : checked ? '완료' : '미완료';
@@ -350,7 +350,7 @@ function App() {
                       );
                     })}
                   </div>
-                  <p className="calendar-hint"><span aria-hidden="true">✳</span> 등록일부터 오늘까지 자유롭게 기록을 바꿀 수 있어요.</p>
+                  <p className="calendar-hint"><span aria-hidden="true">✳</span> 오늘과 지난 날짜는 자유롭게 기록을 바꿀 수 있어요.</p>
                 </div>
               </>
             ) : (

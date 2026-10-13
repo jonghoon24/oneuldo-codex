@@ -44,7 +44,7 @@ function parseSavedData(raw: string): SavedData {
     const createdAt = item.createdAt as DateKey;
     const completedDates = item.completedDates as unknown[];
     if (completedDates.some((date) =>
-      typeof date !== 'string' || !parseDateKey(date) || date < createdAt)
+      typeof date !== 'string' || !parseDateKey(date))
     ) {
       throw new Error('저장된 습관 데이터가 손상되었습니다.');
     }
