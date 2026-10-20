@@ -103,6 +103,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8ab5a7; outline-
 .month-navigation button { width: 26px; height: 26px; border: 1px solid #e7ece5; border-radius: 7px; background: #fff; color: #547463; font-size: 20px; line-height: 20px; }
 .month-navigation button:hover:not(:disabled) { background: #f1f7ef; }
 .month-navigation button:disabled { color: #c9d1c8; background: #f8faf7; }
+.monthly-achievement { margin: -7px 0 12px; color: #4d6653; text-align: right; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
 .weekday { display: grid; place-items: center; height: 28px; color: #a1aba1; font-size: 11px; font-weight: 700; }
 .calendar-blank { min-height: 60px; }

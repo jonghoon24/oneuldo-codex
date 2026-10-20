@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { currentStreak, fullDateLabel, localDateKey, monthDays, monthLabel, shiftMonth } from './dates';
+import { currentStreak, fullDateLabel, localDateKey, monthDays, monthLabel, monthlyAchievement, shiftMonth } from './dates';
 import { loadData, saveData, validateName, type Habit, type SavedData } from './storage';
 
 type InitialState = { data: SavedData; error: string | null };
@@ -158,6 +158,7 @@ function App() {
   }
 
   const calendarDays = selected ? monthDays(visibleMonth) : [];
+  const achievement = selected ? monthlyAchievement(selected.completedDates, visibleMonth, today) : null;
   const streak = selected ? currentStreak(selected.completedDates, today) : 0;
   const todayCompleted = selected?.completedDates.includes(today) ?? false;
   const previousMonth = shiftMonth(visibleMonth, -1);
@@ -318,6 +319,9 @@ function App() {
                       <button type="button" onClick={() => setVisibleMonth(nextMonth)} disabled={nextMonth > todayMonth} aria-label="다음 달">›</button>
                     </div>
                   </div>
+                  {achievement && (
+                    <p className="monthly-achievement">달성률 {achievement.percentage}% ({achievement.completedDays}/{achievement.availableDays}일)</p>
+                  )}
                   <div className="calendar-grid" role="group" aria-label={`${monthLabel(visibleMonth)} 실천 기록`}>
                     {['월', '화', '수', '목', '금', '토', '일'].map((day) => <span className="weekday" key={day}>{day}</span>)}
                     {calendarDays.map((date, index) => {

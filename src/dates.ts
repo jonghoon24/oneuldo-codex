@@ -42,6 +42,18 @@ export function monthDays(monthKey: string): Array<DateKey | null> {
   ];
 }
 
+export function monthlyAchievement(completedDates: readonly DateKey[], monthKey: string, today: DateKey) {
+  const availableDates = monthDays(monthKey).filter((date): date is DateKey => date !== null && date <= today);
+  const completed = new Set(completedDates);
+  const completedDays = availableDates.filter((date) => completed.has(date)).length;
+  const availableDays = availableDates.length;
+  return {
+    completedDays,
+    availableDays,
+    percentage: Math.round(completedDays / availableDays * 100),
+  };
+}
+
 export function currentStreak(completedDates: readonly DateKey[], today: DateKey): number {
   const completed = new Set(completedDates);
   let cursor = completed.has(today) ? today : shiftDate(today, -1);
