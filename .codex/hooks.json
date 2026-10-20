@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/codex-stop-check.mjs\"",
+            "timeout": 600,
+            "statusMessage": "변경사항의 lint와 build 검사 중"
+          }
+        ]
+      }
+    ]
+  }
+}
