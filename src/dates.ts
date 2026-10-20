@@ -53,19 +53,6 @@ export function currentStreak(completedDates: readonly DateKey[], today: DateKey
   return count;
 }
 
-export function longestStreak(completedDates: readonly DateKey[]): number {
-  const dates = [...new Set(completedDates)].sort();
-  let longest = 0;
-  let count = 0;
-
-  for (let index = 0; index < dates.length; index += 1) {
-    count = index > 0 && shiftDate(dates[index - 1], 1) === dates[index] ? count + 1 : 1;
-    longest = Math.max(longest, count);
-  }
-
-  return longest;
-}
-
 export function fullDateLabel(key: DateKey): string {
   const date = parseDateKey(key)!;
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;

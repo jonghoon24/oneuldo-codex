@@ -12,13 +12,13 @@ async function registerHabit(page: Page, name = HABIT_NAME) {
 }
 
 async function registerPastHabit(page: Page) {
-  // 과거 날짜도 등록일부터 수정할 수 있으므로 UI에서 그제 등록한 뒤 오늘로 이동한다.
+  // 그제 등록한 습관을 오늘 다시 열어 과거 기록과 연속 일수를 확인한다.
   await page.clock.setFixedTime(TWO_DAYS_AGO);
   await page.reload();
   await registerHabit(page);
   await page.clock.setFixedTime(TODAY);
   await page.reload();
-  await expect(page.getByText('2026년 10월 11일부터 시작', { exact: true })).toBeVisible();
+  await expect(page.getByText('2026년 10월 11일 등록', { exact: true })).toBeVisible();
 }
 
 async function expectStreak(page: Page, days: number) {
