@@ -36,15 +36,14 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8ab5a7; outline-
 .panel-heading h2 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.055em; }
 .count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin-left: 3px; padding: 0 6px; border-radius: 8px; background: #e7f2e9; color: #438363; font-size: 12px; vertical-align: 3px; letter-spacing: 0; }
 .heading-decoration { color: #b3cfb8; font-size: 28px; }
-.add-form { margin-top: 32px; }
+.register-button { align-self: flex-start; margin-top: 28px; min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.add-form.edit-form { margin-top: 18px; }
 .add-form label, .edit-form label { display: block; margin-bottom: 10px; color: #596c60; font-size: 12px; font-weight: 700; }
-.add-controls { display: flex; gap: 7px; }
-.add-controls input, .edit-controls input { min-width: 0; height: 44px; flex: 1; border: 1px solid #e2e8dd; border-radius: 9px; padding: 0 13px; background: #fafbf8; color: #264335; outline: none; font-size: 13px; }
-.add-controls input::placeholder { color: #a2ada4; }
-.add-controls input:focus, .edit-controls input:focus { border-color: #77a688; background: #fff; }
-.add-button { width: 44px; height: 44px; border: 0; border-radius: 9px; background: #2e6952; color: #fff; font-size: 25px; font-weight: 300; line-height: 1; }
-.add-button:hover:not(:disabled), .small-primary:hover:not(:disabled), .today-button:hover:not(:disabled) { background: #245843; }
-.add-button:disabled, .small-primary:disabled { opacity: .5; }
+.edit-controls input { min-width: 0; height: 44px; flex: 1; border: 1px solid #e2e8dd; border-radius: 9px; padding: 0 13px; background: #fafbf8; color: #264335; outline: none; font-size: 13px; }
+.edit-controls input::placeholder { color: #a2ada4; }
+.edit-controls input:focus { border-color: #77a688; background: #fff; }
+.small-primary:hover:not(:disabled), .today-button:hover:not(:disabled) { background: #245843; }
+.small-primary:disabled { opacity: .5; }
 .field-error { margin: 8px 0 0; color: #a74e3f; font-size: 12px; line-height: 1.5; }
 .habit-list { list-style: none; margin: 24px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .habit-row { display: flex; align-items: center; min-height: 69px; padding: 4px 11px 4px 5px; border: 1px solid transparent; border-radius: 12px; background: #fafbf9; }
@@ -71,7 +70,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8ab5a7; outline-
 .detail-panel { min-height: 630px; padding: 29px 32px 30px; }
 .detail-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .detail-top h2 { margin: 8px 0 6px; font-size: 25px; letter-spacing: -.06em; overflow-wrap: anywhere; }
-.started-at { margin: 0; color: #9ba69c; font-size: 11px; }
 .detail-actions { display: flex; gap: 5px; padding-top: 2px; white-space: nowrap; }
 .detail-actions button { border: 0; background: transparent; color: #91a097; font-size: 11px; padding: 7px 4px; }
 .detail-actions button:hover:not(:disabled) { color: #316e50; text-decoration: underline; }
@@ -98,12 +96,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8ab5a7; outline-
 .calendar-section { margin-top: 37px; }
 .calendar-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 15px; margin-bottom: 19px; }
 .calendar-header h3 { margin: 7px 0 0; font-size: 20px; letter-spacing: -.05em; }
+.monthly-achievement { margin: -7px 0 12px; color: #4d6653; text-align: right; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .month-navigation { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .month-navigation span { min-width: 85px; color: #4d6653; text-align: center; font-size: 12px; font-weight: 800; }
 .month-navigation button { width: 26px; height: 26px; border: 1px solid #e7ece5; border-radius: 7px; background: #fff; color: #547463; font-size: 20px; line-height: 20px; }
 .month-navigation button:hover:not(:disabled) { background: #f1f7ef; }
 .month-navigation button:disabled { color: #c9d1c8; background: #f8faf7; }
-.monthly-achievement { margin: -7px 0 12px; color: #4d6653; text-align: right; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
 .weekday { display: grid; place-items: center; height: 28px; color: #a1aba1; font-size: 11px; font-weight: 700; }
 .calendar-blank { min-height: 60px; }
@@ -168,3 +166,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8ab5a7; outline-
   .day-state span { font-size: 10px; }
   .site-footer { flex-direction: column; gap: 5px; }
 }
+
+.date-field { margin-top: 16px; }
+.date-field input { display: block; width: 100%; min-width: 0; height: 40px; border: 1px solid #e2e8dd; border-radius: 9px; padding: 0 10px; background: #fafbf8; color: #264335; font-size: 13px; }
+.edit-form { width: 100%; }
+.detail-top > div:first-child { min-width: 0; flex: 1; }
+.edit-buttons { margin-top: 14px; height: 36px; }
+.start-marker { position: absolute; top: -7px; padding: 1px 4px; border-radius: 4px; background: #2e6952; color: #fff; font-size: 9px; line-height: 13px; }

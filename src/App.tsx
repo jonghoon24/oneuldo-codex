@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { currentStreak, fullDateLabel, localDateKey, monthDays, monthLabel, monthlyAchievement, shiftMonth } from './dates';
-import { loadData, saveData, validateName, type Habit, type SavedData } from './storage';
+import { loadData, saveData, validateName, validateStartDate, type Habit, type SavedData } from './storage';
 
 type InitialState = { data: SavedData; error: string | null };
 
@@ -20,27 +20,33 @@ function App() {
   const [data, setData] = useState(initial.data);
   const [fatalError, setFatalError] = useState<string | null>(initial.error);
   const [today, setToday] = useState(() => localDateKey(new Date()));
-  const [visibleMonth, setVisibleMonth] = useState(() => localDateKey(new Date()).slice(0, 7));
+  const [requestedMonth, setRequestedMonth] = useState(() => localDateKey(new Date()).slice(0, 7));
   const [selectedId, setSelectedId] = useState<string | null>(initial.data.habits[0]?.id ?? null);
   const [newName, setNewName] = useState('');
   const [newNameError, setNewNameError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newStartDate, setNewStartDate] = useState(today);
+  const [newStartError, setNewStartError] = useState<string | null>(null);
+  const [editedStartDate, setEditedStartDate] = useState('');
+  const [editStartError, setEditStartError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
-  const newNameRef = useRef<HTMLInputElement>(null);
 
   const selected = data.habits.find((habit) => habit.id === selectedId) ?? null;
   const pendingDelete = data.habits.find((habit) => habit.id === pendingDeleteId) ?? null;
   const todayMonth = today.slice(0, 7);
+  const firstMonth = selected && selected.createdAt < today ? selected.createdAt.slice(0, 7) : todayMonth;
+  const visibleMonth = requestedMonth < firstMonth ? firstMonth : requestedMonth > todayMonth ? todayMonth : requestedMonth;
 
   useEffect(() => {
     function refreshToday() {
       const next = localDateKey(new Date());
       setToday((previous) => {
         if (previous !== next) {
-          setVisibleMonth((current) => current === previous.slice(0, 7) ? next.slice(0, 7) : current);
+          setRequestedMonth((current) => current === previous.slice(0, 7) ? next.slice(0, 7) : current);
         }
         return next;
       });
@@ -73,42 +79,61 @@ function App() {
       setData(next);
       return true;
     } catch {
+      closeAdd();
+      setEditing(false);
       setFatalError('변경 내용을 저장하지 못했습니다. 화면의 변경을 취소했습니다. 브라우저 저장소를 확인해 주세요.');
       return false;
     }
   }
 
+  function beginAdd() {
+    if (fatalError) return;
+    setNewName('');
+    setNewStartDate(today);
+    setNewNameError(null);
+    setNewStartError(null);
+    setAdding(true);
+  }
+
+  function closeAdd() {
+    setAdding(false);
+    setNewName('');
+    setNewStartDate(today);
+    setNewNameError(null);
+    setNewStartError(null);
+  }
+
   function addHabit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const error = validateName(newName, data.habits);
-    if (error) {
-      setNewNameError(error);
-      return;
-    }
+    const startDate = newStartDate;
+    const startError = validateStartDate(startDate, today);
+    setNewNameError(error);
+    setNewStartError(startError);
+    if (error || startError) return;
     const habit: Habit = {
       id: crypto.randomUUID(),
       name: newName.trim(),
-      createdAt: today,
+      createdAt: startDate,
       completedDates: [],
     };
     if (commit({ version: 1, habits: [...data.habits, habit] })) {
       setSelectedId(habit.id);
-      setVisibleMonth(todayMonth);
-      setNewName('');
-      setNewNameError(null);
+      setRequestedMonth(todayMonth);
+      closeAdd();
       setEditing(false);
     }
   }
 
   function selectHabit(id: string) {
     setSelectedId(id);
-    setVisibleMonth(todayMonth);
+    setRequestedMonth(todayMonth);
     setEditing(false);
     setEditError(null);
   }
 
   function toggleDate(habit: Habit, date: string) {
-    if (fatalError || date > today) return;
+    if (fatalError || date < habit.createdAt || date > today) return;
     const completedDates = habit.completedDates.includes(date)
       ? habit.completedDates.filter((entry) => entry !== date)
       : [...habit.completedDates, date].sort();
@@ -119,7 +144,9 @@ function App() {
   }
 
   function beginEdit() {
-    if (!selected) return;
+    if (!selected || fatalError) return;
+    setEditedStartDate(selected.createdAt);
+    setEditStartError(null);
     setEditedName(selected.name);
     setEditError(null);
     setEditing(true);
@@ -129,16 +156,21 @@ function App() {
     event.preventDefault();
     if (!selected) return;
     const error = validateName(editedName, data.habits, selected.id);
-    if (error) {
-      setEditError(error);
+    const startError = validateStartDate(editedStartDate, today, selected.completedDates);
+    setEditError(error);
+    setEditStartError(startError);
+    if (error || startError) return;
+    if (editedName.trim() === selected.name && editedStartDate === selected.createdAt) {
+      setEditing(false);
       return;
     }
     if (commit({
       version: 1,
-      habits: data.habits.map((habit) => habit.id === selected.id ? { ...habit, name: editedName.trim() } : habit),
+      habits: data.habits.map((habit) => habit.id === selected.id ? { ...habit, name: editedName.trim(), createdAt: editedStartDate } : habit),
     })) {
       setEditing(false);
       setEditError(null);
+      setRequestedMonth(visibleMonth < editedStartDate.slice(0, 7) ? editedStartDate.slice(0, 7) : visibleMonth);
     }
   }
 
@@ -151,14 +183,14 @@ function App() {
       : selectedId;
     if (commit({ version: 1, habits: remaining })) {
       setSelectedId(nextSelected);
-      setVisibleMonth(todayMonth);
+      setRequestedMonth(todayMonth);
       setEditing(false);
     }
     setPendingDeleteId(null);
   }
 
   const calendarDays = selected ? monthDays(visibleMonth) : [];
-  const achievement = selected ? monthlyAchievement(selected.completedDates, visibleMonth, today) : null;
+  const achievement = selected ? monthlyAchievement(selected.completedDates, visibleMonth, today, selected.createdAt) : null;
   const streak = selected ? currentStreak(selected.completedDates, today) : 0;
   const todayCompleted = selected?.completedDates.includes(today) ?? false;
   const previousMonth = shiftMonth(visibleMonth, -1);
@@ -199,30 +231,45 @@ function App() {
               <span className="heading-decoration" aria-hidden="true">✳</span>
             </div>
 
-            <form className="add-form" onSubmit={addHabit} noValidate>
-              <label htmlFor="new-habit-name">새 습관 추가</label>
-              <div className="add-controls">
-                <input
-                  id="new-habit-name"
-                  ref={newNameRef}
-                  value={newName}
-                  onChange={(event) => { setNewName(event.target.value); setNewNameError(null); }}
-                  placeholder="예: 물 한 잔 마시기"
-                  aria-invalid={Boolean(newNameError)}
-                  aria-describedby={newNameError ? 'new-habit-error' : undefined}
-                  disabled={Boolean(fatalError)}
-                />
-                <button type="submit" className="add-button" disabled={Boolean(fatalError)} aria-label="습관 추가">+</button>
-              </div>
-              {newNameError && <p className="field-error" id="new-habit-error" role="alert">{newNameError}</p>}
-            </form>
+            <button type="button" className="register-button small-primary" onClick={beginAdd}
+              disabled={Boolean(fatalError) || adding} aria-expanded={adding} aria-controls="register-habit-form">습관 등록</button>
+            {adding && (
+              <form id="register-habit-form" className="add-form edit-form" onSubmit={addHabit}
+                onKeyDown={(event) => { if (event.key === 'Escape') closeAdd(); }} noValidate>
+                <label htmlFor="new-habit-name">새 습관 추가</label>
+                <div className="edit-controls">
+                  <input
+                    id="new-habit-name"
+                    autoFocus
+                    value={newName}
+                    onChange={(event) => { setNewName(event.target.value); setNewNameError(null); }}
+                    placeholder="예: 물 한 잔 마시기"
+                    aria-invalid={Boolean(newNameError)}
+                    aria-describedby={newNameError ? 'new-habit-error' : undefined}
+                    disabled={Boolean(fatalError)}
+                  />
+                </div>
+                {newNameError && <p className="field-error" id="new-habit-error" role="alert">{newNameError}</p>}
+                <div className="date-field">
+                  <label htmlFor="new-start-date">시작일</label>
+                  <input id="new-start-date" type="date" min="1900-01-01" max={today} value={newStartDate}
+                    onChange={(event) => { setNewStartDate(event.target.value); setNewStartError(null); }}
+                    disabled={Boolean(fatalError)} aria-invalid={Boolean(newStartError)} aria-describedby={newStartError ? 'new-start-error' : undefined} />
+                  {newStartError && <p className="field-error" id="new-start-error" role="alert">{newStartError}</p>}
+                </div>
+                <div className="edit-controls edit-buttons">
+                  <button type="submit" className="small-primary" disabled={Boolean(fatalError)}>등록</button>
+                  <button type="button" className="small-plain" onClick={closeAdd}>취소</button>
+                </div>
+              </form>
+            )}
 
             {data.habits.length === 0 ? (
               <div className="empty-habits">
                 <div className="empty-illustration" aria-hidden="true"><span>✦</span><span>◌</span><span>✧</span></div>
                 <h3>첫 습관을 시작해 볼까요?</h3>
                 <p>매일 하고 싶은 일을 하나 적어 보세요.<br />지난 날짜도 기록할 수 있어요.</p>
-                <button type="button" className="text-action" onClick={() => newNameRef.current?.focus()} disabled={Boolean(fatalError)}>첫 습관 등록하기 <span aria-hidden="true">↗</span></button>
+                <button type="button" className="text-action" onClick={beginAdd} disabled={Boolean(fatalError) || adding}>첫 습관 등록하기 <span aria-hidden="true">↗</span></button>
               </div>
             ) : (
               <ul className="habit-list">
@@ -244,7 +291,7 @@ function App() {
                         type="button"
                         className={`list-check ${checked ? 'checked' : ''}`}
                         onClick={() => toggleDate(habit, today)}
-                        disabled={Boolean(fatalError)}
+                        disabled={Boolean(fatalError) || habit.createdAt > today}
                         aria-label={`${habit.name}, 오늘 ${checked ? '완료 취소' : '완료하기'}`}
                         aria-pressed={checked}
                       ><span aria-hidden="true">{checked ? '✓' : '+'}</span></button>
@@ -264,7 +311,7 @@ function App() {
                   <div>
                     <span className="section-kicker">오늘의 기록</span>
                     {editing ? (
-                      <form className="edit-form" onSubmit={saveEdit} noValidate>
+                      <form className="edit-form" onSubmit={saveEdit} onKeyDown={(event) => { if (event.key === 'Escape') setEditing(false); }} noValidate>
                         <label htmlFor="edit-habit-name">습관 이름 변경</label>
                         <div className="edit-controls">
                           <input
@@ -272,21 +319,28 @@ function App() {
                             autoFocus
                             value={editedName}
                             onChange={(event) => { setEditedName(event.target.value); setEditError(null); }}
-                            onKeyDown={(event) => { if (event.key === 'Escape') { setEditing(false); setEditError(null); } }}
                             aria-invalid={Boolean(editError)}
                             aria-describedby={editError ? 'edit-habit-error' : undefined}
                             disabled={Boolean(fatalError)}
                           />
+                        </div>
+                        {editError && <p className="field-error" id="edit-habit-error" role="alert">{editError}</p>}
+                        <div className="date-field">
+                          <label htmlFor="edit-start-date">시작일</label>
+                          <input id="edit-start-date" type="date" min="1900-01-01" max={today} value={editedStartDate}
+                            onChange={(event) => { setEditedStartDate(event.target.value); setEditStartError(null); }}
+                            disabled={Boolean(fatalError)} aria-invalid={Boolean(editStartError)} aria-describedby={editStartError ? 'edit-start-error' : undefined} />
+                          {editStartError && <p className="field-error" id="edit-start-error" role="alert">{editStartError}</p>}
+                        </div>
+                        <div className="edit-controls edit-buttons">
                           <button type="submit" className="small-primary" disabled={Boolean(fatalError)}>저장</button>
                           <button type="button" className="small-plain" onClick={() => setEditing(false)}>취소</button>
                         </div>
-                        {editError && <p className="field-error" id="edit-habit-error" role="alert">{editError}</p>}
                       </form>
                     ) : <h2>{selected.name}</h2>}
-                    <p className="started-at">{fullDateLabel(selected.createdAt)} 등록</p>
                   </div>
                   <div className="detail-actions">
-                    <button type="button" onClick={beginEdit} disabled={Boolean(fatalError) || editing}>이름 변경</button>
+                    <button type="button" onClick={beginEdit} disabled={Boolean(fatalError) || editing}>수정</button>
                     <button type="button" onClick={() => setPendingDeleteId(selected.id)} disabled={Boolean(fatalError)}>삭제</button>
                   </div>
                 </div>
@@ -302,7 +356,7 @@ function App() {
                     type="button"
                     className={`today-button ${todayCompleted ? 'done' : ''}`}
                     onClick={() => toggleDate(selected, today)}
-                    disabled={Boolean(fatalError)}
+                    disabled={Boolean(fatalError) || selected.createdAt > today}
                     aria-pressed={todayCompleted}
                   ><span aria-hidden="true">{todayCompleted ? '✓' : '+'}</span>{todayCompleted ? '오늘 완료 · 취소하기' : '오늘 완료하기'}</button>
                 </div>
@@ -314,9 +368,9 @@ function App() {
                       <h3>실천 달력</h3>
                     </div>
                     <div className="month-navigation">
-                      <button type="button" onClick={() => setVisibleMonth(previousMonth)} aria-label="이전 달">‹</button>
+                      <button type="button" onClick={() => setRequestedMonth(previousMonth)} disabled={previousMonth < firstMonth} aria-label="이전 달">‹</button>
                       <span aria-live="polite">{monthLabel(visibleMonth)}</span>
-                      <button type="button" onClick={() => setVisibleMonth(nextMonth)} disabled={nextMonth > todayMonth} aria-label="다음 달">›</button>
+                      <button type="button" onClick={() => setRequestedMonth(nextMonth)} disabled={nextMonth > todayMonth} aria-label="다음 달">›</button>
                     </div>
                   </div>
                   {achievement && (
@@ -326,7 +380,8 @@ function App() {
                     {['월', '화', '수', '목', '금', '토', '일'].map((day) => <span className="weekday" key={day}>{day}</span>)}
                     {calendarDays.map((date, index) => {
                       if (!date) return <span key={`blank-${index}`} className="calendar-blank" aria-hidden="true" />;
-                      const available = date <= today;
+                      const available = date >= selected.createdAt && date <= today;
+                      const isStart = date === selected.createdAt;
                       const checked = available && selected.completedDates.includes(date);
                       const isToday = date === today;
                       const state = !available ? '기록 불가' : checked ? '완료' : '미완료';
@@ -339,15 +394,16 @@ function App() {
                           onClick={() => toggleDate(selected, date)}
                           disabled={!available || Boolean(fatalError)}
                           aria-pressed={available ? checked : undefined}
-                          aria-label={`${fullDateLabel(date)}${isToday ? ', 오늘' : ''}, ${state}${available ? ', 체크 전환' : ''}`}
+                          aria-label={`${fullDateLabel(date)}${isToday ? ', 오늘' : ''}${isStart ? ', 시작일' : ''}, ${state}${available ? ', 체크 전환' : ''}`}
                         >
+                          {isStart && <span className="start-marker" aria-hidden="true">시작</span>}
                           <span className="day-number">{Number(date.slice(-2))}</span>
                           <span className="day-state"><span aria-hidden="true">{checked ? '✓' : '·'}</span> {shortState}</span>
                         </button>
                       );
                     })}
                   </div>
-                  <p className="calendar-hint"><span aria-hidden="true">✳</span> 오늘과 지난 날짜는 자유롭게 기록을 바꿀 수 있어요.</p>
+                  <p className="calendar-hint"><span aria-hidden="true">✳</span> 시작일부터 오늘까지 기록을 바꿀 수 있어요.</p>
                 </div>
               </>
             ) : (

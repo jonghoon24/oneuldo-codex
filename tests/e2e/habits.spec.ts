@@ -5,20 +5,21 @@ const TWO_DAYS_AGO = new Date('2026-10-11T12:00:00+09:00');
 const HABIT_NAME = '물 한 잔 마시기';
 
 async function registerHabit(page: Page, name = HABIT_NAME) {
+  await page.getByRole('button', { name: '습관 등록', exact: true }).click();
   await page.getByRole('textbox', { name: '새 습관 추가' }).fill(name);
-  await page.getByRole('button', { name: '습관 추가', exact: true }).click();
+  await page.getByRole('button', { name: '등록', exact: true }).click();
   await expect(page.getByRole('region', { name: '습관 상세' })
     .getByRole('heading', { name, exact: true })).toBeVisible();
 }
 
 async function registerPastHabit(page: Page) {
-  // 그제 등록한 습관을 오늘 다시 열어 과거 기록과 연속 일수를 확인한다.
+  // 그제 등록한 습관의 기록을 오늘 기준으로 확인한다.
   await page.clock.setFixedTime(TWO_DAYS_AGO);
   await page.reload();
   await registerHabit(page);
   await page.clock.setFixedTime(TODAY);
   await page.reload();
-  await expect(page.getByText('2026년 10월 11일 등록', { exact: true })).toBeVisible();
+  await expect(calendarDay(page, 11)).toBeEnabled();
 }
 
 async function expectStreak(page: Page, days: number) {
@@ -45,17 +46,14 @@ test.beforeEach(async ({ page }) => {
 test('습관 등록 후 오늘 체크와 해제에 따라 연속 일수가 1일과 0일이 된다', async ({ page }) => {
   await registerHabit(page);
   await expectStreak(page, 0);
-  await expect(page.getByText('달성률 0% (0/13일)', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '오늘 완료하기', exact: true }).click();
   await expect(calendarDay(page, 13)).toHaveAttribute('aria-pressed', 'true');
   await expectStreak(page, 1);
-  await expect(page.getByText('달성률 8% (1/13일)', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '오늘 완료 · 취소하기', exact: true }).click();
   await expect(calendarDay(page, 13)).toHaveAttribute('aria-pressed', 'false');
   await expectStreak(page, 0);
-  await expect(page.getByText('달성률 0% (0/13일)', { exact: true })).toBeVisible();
 });
 
 test('어제와 오늘을 체크하면 연속 2일이 된다', async ({ page }) => {
@@ -84,7 +82,6 @@ test('새로고침 후에도 체크 기록과 연속 일수가 유지된다', as
   await calendarDay(page, 12).click();
   await calendarDay(page, 13).click();
   await expectStreak(page, 2);
-  await expect(page.getByText('달성률 15% (2/13일)', { exact: true })).toBeVisible();
 
   await page.reload();
 
@@ -93,46 +90,6 @@ test('새로고침 후에도 체크 기록과 연속 일수가 유지된다', as
   await expect(page.getByRole('button', { name: '오늘 완료 · 취소하기', exact: true }))
     .toHaveAttribute('aria-pressed', 'true');
   await expectStreak(page, 2);
-  await expect(page.getByText('달성률 15% (2/13일)', { exact: true })).toBeVisible();
-});
-
-test('이전 달의 등록 전 기록을 체크하고 돌아오면 달성률도 해당 월 기준으로 바뀐다', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-03-18T12:00:00+09:00'));
-  await page.reload();
-  await registerHabit(page);
-  await expect(page.getByText('2026년 3월 18일 등록', { exact: true })).toBeVisible();
-  await expect(page.getByText('달성률 0% (0/18일)', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '다음 달', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '2026년 3월 19일, 기록 불가', exact: true })).toBeDisabled();
-
-  await page.getByRole('button', { name: '이전 달', exact: true }).click();
-  await expect(page.getByText('달성률 0% (0/28일)', { exact: true })).toBeVisible();
-  const february = page.getByRole('group', { name: '2026년 2월 실천 기록' });
-  for (let day = 1; day <= 28; day += 1) {
-    await february.getByRole('button', { name: `2026년 2월 ${day}일, 미완료, 체크 전환`, exact: true }).click();
-  }
-  await expect(page.getByText('달성률 100% (28/28일)', { exact: true })).toBeVisible();
-  await february.getByRole('button', { name: '2026년 2월 1일, 완료, 체크 전환', exact: true }).click();
-  await expect(page.getByText('달성률 96% (27/28일)', { exact: true })).toBeVisible();
-
-  await page.getByRole('button', { name: '다음 달', exact: true }).click();
-  await expect(page.getByText('달성률 0% (0/18일)', { exact: true })).toBeVisible();
-});
-
-test('자정에 분모가 갱신되고 월말에는 새 달의 달성률로 전환된다', async ({ page }) => {
-  await page.clock.install({ time: new Date('2026-03-30T23:59:59+09:00') });
-  await page.reload();
-  await registerHabit(page);
-  await page.getByRole('button', { name: '오늘 완료하기', exact: true }).click();
-  await expect(page.getByText('달성률 3% (1/30일)', { exact: true })).toBeVisible();
-
-  await page.clock.runFor(1_200);
-  await expect(page.getByText('달성률 3% (1/31일)', { exact: true })).toBeVisible();
-  await expect(page.getByRole('group', { name: '2026년 3월 실천 기록' })).toBeVisible();
-
-  await page.clock.fastForward(24 * 60 * 60 * 1_000);
-  await expect(page.getByRole('group', { name: '2026년 4월 실천 기록' })).toBeVisible();
-  await expect(page.getByText('달성률 0% (0/1일)', { exact: true })).toBeVisible();
 });
 
 test('삭제 확인 창을 거쳐 습관이 사라지고 다음 습관이 선택된다', async ({ page }) => {

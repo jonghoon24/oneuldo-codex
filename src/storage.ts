@@ -1,9 +1,10 @@
-import { localDateKey, parseDateKey, type DateKey } from './dates';
+import { fullDateLabel, localDateKey, parseDateKey, type DateKey } from './dates';
 import { createDemoData } from './demoData';
 
 export type Habit = {
   id: string;
   name: string;
+  /** 습관 시작일. 저장 형식 호환을 위해 기존 필드명을 유지한다. */
   createdAt: DateKey;
   completedDates: DateKey[];
 };
@@ -59,7 +60,7 @@ function parseSavedData(raw: string): SavedData {
     return {
       id: item.id,
       name: item.name,
-      createdAt,
+      createdAt: (completedDates as DateKey[]).reduce((earliest, date) => date < earliest ? date : earliest, createdAt),
       completedDates: completedDates as DateKey[],
     };
   });
@@ -90,5 +91,15 @@ export function validateName(input: string, habits: readonly Habit[], excludingI
   if (habits.some((habit) => habit.id !== excludingId && habit.name === name)) {
     return '이미 같은 이름의 습관이 있습니다.';
   }
+  return null;
+}
+
+export function validateStartDate(input: string, today: DateKey, completedDates: readonly DateKey[] = []): string | null {
+  if (!input) return '시작일을 입력해 주세요.';
+  if (!parseDateKey(input)) return '올바른 날짜를 입력해 주세요.';
+  if (input < '1900-01-01') return '시작일은 1900년 1월 1일 이후로 입력해 주세요.';
+  if (input > today) return '시작일은 오늘 이후로 지정할 수 없습니다.';
+  const earliest = completedDates.reduce<string | null>((first, date) => first === null || date < first ? date : first, null);
+  if (earliest && input > earliest) return `가장 이른 기록인 ${fullDateLabel(earliest)} 이후로 시작일을 지정할 수 없습니다.`;
   return null;
 }

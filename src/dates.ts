@@ -42,15 +42,15 @@ export function monthDays(monthKey: string): Array<DateKey | null> {
   ];
 }
 
-export function monthlyAchievement(completedDates: readonly DateKey[], monthKey: string, today: DateKey) {
-  const availableDates = monthDays(monthKey).filter((date): date is DateKey => date !== null && date <= today);
+export function monthlyAchievement(completedDates: readonly DateKey[], monthKey: string, today: DateKey, startDate: DateKey) {
+  const availableDates = monthDays(monthKey).filter((date): date is DateKey => date !== null && date >= startDate && date <= today);
   const completed = new Set(completedDates);
-  const completedDays = availableDates.filter((date) => completed.has(date)).length;
   const availableDays = availableDates.length;
+  const completedDays = availableDates.filter((date) => completed.has(date)).length;
   return {
     completedDays,
     availableDays,
-    percentage: Math.round(completedDays / availableDays * 100),
+    percentage: availableDays === 0 ? 0 : Math.round(completedDays / availableDays * 100),
   };
 }
 
