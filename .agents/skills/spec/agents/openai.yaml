@@ -1,0 +1,4 @@
+interface:
+  display_name: "spec"
+  short_description: "플랜 모드 인터뷰로 기능과 엣지 케이스를 구체화해 스펙 작성"
+  default_prompt: "$spec 만들 기능을 입력받아 플랜 모드에서 인터뷰하고 SPEC.md 작성 계획을 만들어줘."
