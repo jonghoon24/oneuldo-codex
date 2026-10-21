@@ -193,6 +193,7 @@ function App() {
   const achievement = selected ? monthlyAchievement(selected.completedDates, visibleMonth, today, selected.createdAt) : null;
   const streak = selected ? currentStreak(selected.completedDates, today) : 0;
   const todayCompleted = selected?.completedDates.includes(today) ?? false;
+  const completedToday = data.habits.filter((habit) => habit.completedDates.includes(today)).length;
   const previousMonth = shiftMonth(visibleMonth, -1);
   const nextMonth = shiftMonth(visibleMonth, 1);
 
@@ -200,17 +201,25 @@ function App() {
     <div className="app-shell">
       <header className="site-header">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">◒</span>
+          <span className="brand-mark" aria-hidden="true">✓</span>
           <span>오늘도<span className="brand-period">.</span></span>
         </div>
-        <div className="header-date">{fullDateLabel(today)} <span className="header-tagline">· 나의 작은 루틴</span></div>
+        <div className="header-date">{fullDateLabel(today)} <span className="header-tagline">매일의 작은 성취</span></div>
       </header>
 
       <main className="main-content">
         <div className="intro">
-          <div className="eyebrow"><span className="eyebrow-line" /> 하루를 쌓는 공간</div>
-          <h1>작은 실천이<br /><em>일상이 되도록.</em></h1>
-          <p>오늘의 한 칸을 채우고, 이어온 날들을 확인해 보세요.</p>
+          <div>
+            <h1>오늘도, 하나씩.</h1>
+            <p>해낸 습관에 체크하고, 나의 하루를 쌓아요.</p>
+          </div>
+          {data.habits.length > 0 && (
+            <div className="today-summary" aria-live="polite">
+              <span>{completedToday === data.habits.length ? '오늘의 습관을 모두 해냈어요!' : '오늘의 작은 성취'}</span>
+              <strong>{completedToday}<span> / {data.habits.length} 완료</span></strong>
+              <div className="summary-track" aria-hidden="true"><span style={{ width: `${completedToday / data.habits.length * 100}%` }} /></div>
+            </div>
+          )}
         </div>
 
         {fatalError && (
@@ -225,14 +234,12 @@ function App() {
           <section className="habits-panel card" aria-labelledby="habit-list-heading">
             <div className="panel-heading">
               <div>
-                <span className="section-kicker">나의 매일 습관</span>
-                <h2 id="habit-list-heading">나의 습관 <span className="count">{data.habits.length}</span></h2>
+                <span className="section-kicker">체크로 채우는 하루</span>
+                <h2 id="habit-list-heading" aria-label={`나의 습관 ${data.habits.length}`}>오늘 할 습관 <span className="count">{data.habits.length}</span></h2>
               </div>
-              <span className="heading-decoration" aria-hidden="true">✳</span>
+              <button type="button" className="register-button" onClick={beginAdd}
+                disabled={Boolean(fatalError) || adding} aria-expanded={adding} aria-controls="register-habit-form"><span aria-hidden="true">＋</span> 습관 등록</button>
             </div>
-
-            <button type="button" className="register-button small-primary" onClick={beginAdd}
-              disabled={Boolean(fatalError) || adding} aria-expanded={adding} aria-controls="register-habit-form">습관 등록</button>
             {adding && (
               <form id="register-habit-form" className="add-form edit-form" onSubmit={addHabit}
                 onKeyDown={(event) => { if (event.key === 'Escape') closeAdd(); }} noValidate>
@@ -276,7 +283,7 @@ function App() {
                 {data.habits.map((habit) => {
                   const checked = habit.completedDates.includes(today);
                   return (
-                    <li key={habit.id} className={`habit-row ${selectedId === habit.id ? 'selected' : ''}`}>
+                    <li key={habit.id} className={`habit-row ${checked ? 'is-complete' : ''} ${selectedId === habit.id ? 'selected' : ''}`}>
                       <button
                         type="button"
                         className="habit-select"
@@ -285,7 +292,7 @@ function App() {
                         aria-label={`${habit.name} 선택, 현재 연속 ${currentStreak(habit.completedDates, today)}일`}
                       >
                         <span className="habit-name">{habit.name}</span>
-                        <span className="habit-sub">연속 {currentStreak(habit.completedDates, today)}일</span>
+                        <span className="habit-sub">{checked ? '오늘 완료' : '오늘도 이어가요'}<span className="habit-streak">연속 {currentStreak(habit.completedDates, today)}일</span></span>
                       </button>
                       <button
                         type="button"
@@ -294,14 +301,14 @@ function App() {
                         disabled={Boolean(fatalError) || habit.createdAt > today}
                         aria-label={`${habit.name}, 오늘 ${checked ? '완료 취소' : '완료하기'}`}
                         aria-pressed={checked}
-                      ><span aria-hidden="true">{checked ? '✓' : '+'}</span></button>
+                      ><span aria-hidden="true">✓</span></button>
                     </li>
                   );
                 })}
               </ul>
             )}
 
-            <div className="storage-note"><span aria-hidden="true">⌂</span> 기록은 현재 브라우저에만 저장됩니다. 브라우저 데이터를 삭제하면 복구할 수 없어요.</div>
+            {data.habits.length > 0 && <p className="list-hint">습관 이름을 누르면 쌓아온 기록을 볼 수 있어요.</p>}
           </section>
 
           <section className="detail-panel card" aria-label="습관 상세">
@@ -309,7 +316,7 @@ function App() {
               <>
                 <div className="detail-top">
                   <div>
-                    <span className="section-kicker">오늘의 기록</span>
+                    <span className="section-kicker">쌓아온 기록</span>
                     {editing ? (
                       <form className="edit-form" onSubmit={saveEdit} onKeyDown={(event) => { if (event.key === 'Escape') setEditing(false); }} noValidate>
                         <label htmlFor="edit-habit-name">습관 이름 변경</label>
@@ -346,7 +353,7 @@ function App() {
                 </div>
 
                 <div className="progress-block">
-                  <div className="streak-visual" aria-hidden="true">✳</div>
+                  <div className="streak-visual" aria-hidden="true">↗</div>
                   <div className="streak-copy">
                     <span>현재 연속 기록</span>
                     <strong>{streak}<small>일</small></strong>
@@ -364,7 +371,6 @@ function App() {
                 <div className="calendar-section">
                   <div className="calendar-header">
                     <div>
-                      <span className="section-kicker">날짜별 기록</span>
                       <h3>실천 달력</h3>
                     </div>
                     <div className="month-navigation">
@@ -385,7 +391,6 @@ function App() {
                       const checked = available && selected.completedDates.includes(date);
                       const isToday = date === today;
                       const state = !available ? '기록 불가' : checked ? '완료' : '미완료';
-                      const shortState = !available ? '불가' : checked ? '완료' : '안 함';
                       return (
                         <button
                           type="button"
@@ -398,26 +403,26 @@ function App() {
                         >
                           {isStart && <span className="start-marker" aria-hidden="true">시작</span>}
                           <span className="day-number">{Number(date.slice(-2))}</span>
-                          <span className="day-state"><span aria-hidden="true">{checked ? '✓' : '·'}</span> {shortState}</span>
+                          <span className="day-state" aria-hidden="true">{checked ? '✓' : isToday ? '오늘' : ''}</span>
                         </button>
                       );
                     })}
                   </div>
-                  <p className="calendar-hint"><span aria-hidden="true">✳</span> 시작일부터 오늘까지 기록을 바꿀 수 있어요.</p>
+                  <div className="calendar-legend"><span><i className="legend-complete" />완료</span><span><i className="legend-today" />오늘</span><span className="calendar-hint">날짜를 눌러 기록 수정</span></div>
                 </div>
               </>
             ) : (
               <div className="empty-detail">
                 <span className="empty-detail-art" aria-hidden="true">◌</span>
                 <h2>어떤 습관을 쌓아 볼까요?</h2>
-                <p>왼쪽에서 습관을 등록하면<br />오늘의 기록과 달력이 나타납니다.</p>
+                <p>습관을 등록하면<br />오늘의 기록과 달력이 나타납니다.</p>
               </div>
             )}
           </section>
         </div>
       </main>
 
-      <footer className="site-footer"><span>오늘도, 어제보다 한 걸음.</span><span>나의 하루를 기록하는 공간</span></footer>
+      <footer className="site-footer"><span>작은 체크가 모여, 나의 매일이 됩니다.</span><span className="storage-note">기록은 현재 브라우저에만 저장됩니다. 브라우저 데이터를 삭제하면 복구할 수 없어요.</span></footer>
 
       <dialog ref={deleteDialogRef} className="delete-dialog" onClose={() => setPendingDeleteId(null)} aria-labelledby="delete-title" aria-describedby="delete-description">
         <div className="dialog-icon" aria-hidden="true">!</div>
