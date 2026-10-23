@@ -1,9 +1,11 @@
 import { fullDateLabel, localDateKey, parseDateKey, type DateKey } from './dates';
+import { HABIT_COLORS, isHabitColor, type HabitColor } from './colors';
 import { createDemoData } from './demoData';
 
 export type Habit = {
   id: string;
   name: string;
+  color: HabitColor;
   /** 습관 시작일. 저장 형식 호환을 위해 기존 필드명을 유지한다. */
   createdAt: DateKey;
   completedDates: DateKey[];
@@ -33,12 +35,13 @@ function parseSavedData(raw: string): SavedData {
 
   const ids = new Set<string>();
   const names = new Set<string>();
-  const habits: Habit[] = data.habits.map((item: unknown) => {
+  const habits: Habit[] = data.habits.map((item: unknown, index) => {
     if (!isRecord(item) ||
       typeof item.id !== 'string' || item.id.length === 0 ||
       !isValidName(item.name) ||
       typeof item.createdAt !== 'string' || !parseDateKey(item.createdAt) ||
-      !Array.isArray(item.completedDates)
+      !Array.isArray(item.completedDates) ||
+      ('color' in item && !isHabitColor(item.color))
     ) {
       throw new Error('저장된 습관 데이터가 손상되었습니다.');
     }
@@ -60,6 +63,7 @@ function parseSavedData(raw: string): SavedData {
     return {
       id: item.id,
       name: item.name,
+      color: isHabitColor(item.color) ? item.color : HABIT_COLORS[index % HABIT_COLORS.length].id,
       createdAt: (completedDates as DateKey[]).reduce((earliest, date) => date < earliest ? date : earliest, createdAt),
       completedDates: completedDates as DateKey[],
     };

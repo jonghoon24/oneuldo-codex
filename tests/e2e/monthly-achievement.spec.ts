@@ -8,7 +8,7 @@ function dates(month: string, count: number) {
 }
 
 function habit(completedDates: string[] = [], id = 'water', name = '물 마시기'): Habit {
-  return { id, name, createdAt: '2026-02-01', completedDates };
+  return { id, name, color: 'yellow', createdAt: '2026-02-01', completedDates };
 }
 
 async function seed(page: Page, habits: Habit[]) {

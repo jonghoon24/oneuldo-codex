@@ -1,6 +1,28 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { currentStreak, fullDateLabel, localDateKey, monthDays, monthLabel, monthlyAchievement, shiftMonth } from './dates';
 import { loadData, saveData, validateName, validateStartDate, type Habit, type SavedData } from './storage';
+
+import { HABIT_COLORS, habitColorValue, suggestedColor, type HabitColor } from './colors';
+
+function colorStyle(color: HabitColor): CSSProperties {
+  return { '--habit-color': habitColorValue(color) } as CSSProperties;
+}
+
+function ColorPicker({ value, onChange, disabled }: { value: HabitColor; onChange: (color: HabitColor) => void; disabled: boolean }) {
+  return (
+    <fieldset className="color-picker" disabled={disabled}>
+      <legend>습관 색</legend>
+      <div className="color-options">
+        {HABIT_COLORS.map((color) => (
+          <button key={color.id} type="button" className="color-swatch" style={colorStyle(color.id)}
+            aria-label={color.name} aria-pressed={value === color.id} onClick={() => onChange(color.id)}>
+            <span aria-hidden="true">{value === color.id ? '✓' : ''}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 type InitialState = { data: SavedData; error: string | null };
 
@@ -22,6 +44,8 @@ function App() {
   const [today, setToday] = useState(() => localDateKey(new Date()));
   const [requestedMonth, setRequestedMonth] = useState(() => localDateKey(new Date()).slice(0, 7));
   const [selectedId, setSelectedId] = useState<string | null>(initial.data.habits[0]?.id ?? null);
+  const [newColor, setNewColor] = useState<HabitColor>('yellow');
+  const [editedColor, setEditedColor] = useState<HabitColor>('yellow');
   const [newName, setNewName] = useState('');
   const [newNameError, setNewNameError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -88,6 +112,7 @@ function App() {
 
   function beginAdd() {
     if (fatalError) return;
+    setNewColor(suggestedColor(data.habits));
     setNewName('');
     setNewStartDate(today);
     setNewNameError(null);
@@ -114,6 +139,7 @@ function App() {
     const habit: Habit = {
       id: crypto.randomUUID(),
       name: newName.trim(),
+      color: newColor,
       createdAt: startDate,
       completedDates: [],
     };
@@ -145,6 +171,7 @@ function App() {
 
   function beginEdit() {
     if (!selected || fatalError) return;
+    setEditedColor(selected.color);
     setEditedStartDate(selected.createdAt);
     setEditStartError(null);
     setEditedName(selected.name);
@@ -160,13 +187,13 @@ function App() {
     setEditError(error);
     setEditStartError(startError);
     if (error || startError) return;
-    if (editedName.trim() === selected.name && editedStartDate === selected.createdAt) {
+    if (editedName.trim() === selected.name && editedStartDate === selected.createdAt && editedColor === selected.color) {
       setEditing(false);
       return;
     }
     if (commit({
       version: 1,
-      habits: data.habits.map((habit) => habit.id === selected.id ? { ...habit, name: editedName.trim(), createdAt: editedStartDate } : habit),
+      habits: data.habits.map((habit) => habit.id === selected.id ? { ...habit, name: editedName.trim(), createdAt: editedStartDate, color: editedColor } : habit),
     })) {
       setEditing(false);
       setEditError(null);
@@ -264,6 +291,7 @@ function App() {
                     disabled={Boolean(fatalError)} aria-invalid={Boolean(newStartError)} aria-describedby={newStartError ? 'new-start-error' : undefined} />
                   {newStartError && <p className="field-error" id="new-start-error" role="alert">{newStartError}</p>}
                 </div>
+                <ColorPicker value={newColor} onChange={setNewColor} disabled={Boolean(fatalError)} />
                 <div className="edit-controls edit-buttons">
                   <button type="submit" className="small-primary" disabled={Boolean(fatalError)}>등록</button>
                   <button type="button" className="small-plain" onClick={closeAdd}>취소</button>
@@ -296,6 +324,7 @@ function App() {
                       </button>
                       <button
                         type="button"
+                        style={colorStyle(habit.color)}
                         className={`list-check ${checked ? 'checked' : ''}`}
                         onClick={() => toggleDate(habit, today)}
                         disabled={Boolean(fatalError) || habit.createdAt > today}
@@ -339,6 +368,7 @@ function App() {
                             disabled={Boolean(fatalError)} aria-invalid={Boolean(editStartError)} aria-describedby={editStartError ? 'edit-start-error' : undefined} />
                           {editStartError && <p className="field-error" id="edit-start-error" role="alert">{editStartError}</p>}
                         </div>
+                        <ColorPicker value={editedColor} onChange={setEditedColor} disabled={Boolean(fatalError)} />
                         <div className="edit-controls edit-buttons">
                           <button type="submit" className="small-primary" disabled={Boolean(fatalError)}>저장</button>
                           <button type="button" className="small-plain" onClick={() => setEditing(false)}>취소</button>
@@ -368,7 +398,7 @@ function App() {
                   ><span aria-hidden="true">{todayCompleted ? '✓' : '+'}</span>{todayCompleted ? '오늘 완료 · 취소하기' : '오늘 완료하기'}</button>
                 </div>
 
-                <div className="calendar-section">
+                <div className="calendar-section" style={colorStyle(selected.color)}>
                   <div className="calendar-header">
                     <div>
                       <h3>실천 달력</h3>
@@ -389,13 +419,14 @@ function App() {
                       const available = date >= selected.createdAt && date <= today;
                       const isStart = date === selected.createdAt;
                       const checked = available && selected.completedDates.includes(date);
+                      const connected = checked && index % 7 !== 6 && calendarDays[index + 1] != null && calendarDays[index + 1]! <= today && selected.completedDates.includes(calendarDays[index + 1]!);
                       const isToday = date === today;
                       const state = !available ? '기록 불가' : checked ? '완료' : '미완료';
                       return (
                         <button
                           type="button"
                           key={date}
-                          className={`calendar-day ${checked ? 'completed' : ''} ${isToday ? 'today' : ''}`}
+                          className={`calendar-day ${checked ? 'completed' : ''} ${connected ? 'connected-next' : ''} ${isToday ? 'today' : ''}`}
                           onClick={() => toggleDate(selected, date)}
                           disabled={!available || Boolean(fatalError)}
                           aria-pressed={available ? checked : undefined}
